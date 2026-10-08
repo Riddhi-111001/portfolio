@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sheng Siong: Buy-Side Report | Riddhi Agarwal</title>
+<link rel="stylesheet" href="../style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body style="--c:#38bdf8">
+<nav><div class="wrap"><a class="logo" href="../index.html">RIDDHI<span>.</span>AGARWAL</a><div class="links"><a href="../index.html#projects">All projects</a></div></div></nav>
+<div class="wrap">
+<a class="back" href="../index.html#projects">← Back to all projects</a>
+<div class="phead"><div class="tag" style="color:#38bdf8">EQUITY RESEARCH · SGX: OV8 · SEPTEMBER 2025</div><h1>Sheng Siong: Buy-Side Report</h1><p class="sub">A buy-side equity research report on Sheng Siong, one of Singapore's largest supermarket operators with 77 stores and about 20% market share. Group project with four classmates.</p></div>
+<div class="callout">Recommendation: <b>Stay Away.</b> Target price S$2.12 vs S$2.09 market price, only 3% upside. Strong margins are already priced in at a ~20% premium to peers.</div>
+<div class="kpi"><div><b>S$2.12</b><span>One-year target price</span></div><div><b>+3%</b><span>Base upside</span></div><div><b>+15% / −19%</b><span>Bull / bear</span></div><div><b>6.19%</b><span>WACC</span></div><div><b>~9% vs ~2%</b><span>Net margin vs peer median</span></div></div>
+<section><h2>What I did</h2><p class="h2s">Approach and scope</p><ul class="did"><li>Benchmarked against SEA peers (DFI Retail, Thai Beverage) and global players (Costco, Walmart) on EV/Revenue, EV/EBITDA, P/E, P/B and dividend yield.</li><li>Used P/E multiples as the main model and a DCF (1.5% revenue growth, 6.19% WACC, 0.75% perpetual growth) as the second, weighted equally.</li><li>Ran DCF sensitivity tables on WACC vs growth rate and WACC vs exit multiple.</li><li>Analysed industry structure, competition from FairPrice, the China expansion and governance (founding-family board).</li></ul></section><section><h2>Results</h2><p class="h2s">Key outputs from the model</p><div class="two"><div class="panel"><h3>Price outcomes vs today</h3><p class="note">Bull and bear prices are derived from the +15% / −19% range in the report.</p><div class="chart"><canvas id="c1"></canvas></div></div><div class="panel"><h3>EV/EBITDA has re-rated upward</h3><p class="note">Sheng Siong trailing EV/EBITDA, 2022 vs 2025.</p><div class="chart"><canvas id="c2"></canvas></div></div></div></section><section><h2>Files</h2><p class="h2s">Open or download the original work</p><div class="files"><a class="file" href="../files/ShengSiong_BuySide_Report.pdf" target="_blank"><span class="ext">PDF</span><div>Full research report<small>7 pages</small></div></a></div></section>
+</div>
+<footer><div class="wrap"><span>© 2026 Riddhi Agarwal · Singapore</span><a href="../index.html">← Back to portfolio</a></div></footer>
+<script>
+Chart.defaults.color = '#9fb0c7';
+Chart.defaults.borderColor = '#1f2b3f';
+Chart.defaults.font.family = 'Inter, Segoe UI, Helvetica, Arial, sans-serif';
+Chart.defaults.maintainAspectRatio = false;
+new Chart(document.getElementById('c1'), {type:'bar', data:{labels:["Bear", "Current", "Target (base)", "Bull"], datasets:[{data:[1.69, 2.09, 2.12, 2.4], backgroundColor:["#f87171", "#64748b", "#38bdf8", "#34d399"], borderRadius:6}]}, options:{indexAxis:'x', plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'Share price (S$)'},min:1.4}}}});
+new Chart(document.getElementById('c2'), {type:'bar', data:{labels:["2022", "2025"], datasets:[{data:[10.88, 13.09], backgroundColor:["#64748b", "#38bdf8"], borderRadius:6}]}, options:{indexAxis:'x', plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'EV/EBITDA (x)'}}}}});
+
+</script>
+</body>
+</html>

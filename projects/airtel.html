@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bharti Airtel: DCF Valuation | Riddhi Agarwal</title>
+<link rel="stylesheet" href="../style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body style="--c:#34d399">
+<nav><div class="wrap"><a class="logo" href="../index.html">RIDDHI<span>.</span>AGARWAL</a><div class="links"><a href="../index.html#projects">All projects</a></div></div></nav>
+<div class="wrap">
+<a class="back" href="../index.html#projects">← Back to all projects</a>
+<div class="phead"><div class="tag" style="color:#34d399">DCF · TELECOM · INDIA · APRIL 2026</div><h1>Bharti Airtel: DCF Valuation</h1><p class="sub">A ten-year DCF of Bharti Airtel, India's second-largest telecom operator, with a full WACC derivation and three scenarios covering tariffs, 5G capex and Africa growth.</p></div>
+<div class="callout">Result: base case value of <b>Rs 1,291</b> per share vs a market price of Rs 1,834, about <b>30% below</b> the market. Only the bull case (Rs 2,459) supports today's price.</div>
+<div class="kpi"><div><b>Rs 1,291</b><span>Base value per share</span></div><div><b>12.0%</b><span>WACC</span></div><div><b>13.1%</b><span>Cost of equity</span></div><div><b>4.5%</b><span>Terminal growth</span></div><div><b>~8.8%</b><span>10-year revenue CAGR</span></div></div>
+<section><h2>What I did</h2><p class="h2s">Approach and scope</p><ul class="did"><li>Derived cost of equity with CAPM using the India 10-year G-Sec yield, Damodaran's equity risk premium and a 0.5% blended country risk premium for Africa (28% of revenue).</li><li>Re-levered beta with the Hamada equation and used market-value weights (83.6% equity, 16.4% debt) for a 12.0% WACC.</li><li>Forecast revenue in three phases (FY26 to FY35), linked to ARPU, subscriber and Africa growth drivers.</li><li>Built bear, base and bull scenarios varying WACC, terminal growth, EBITDA margin and capex intensity.</li></ul></section><section><h2>Results</h2><p class="h2s">Key outputs from the model</p><div class="two"><div class="panel"><h3>Implied share price by scenario</h3><p class="note">Rupees per share vs current market price (Rs 1,834).</p><div class="chart"><canvas id="c1"></canvas></div></div><div class="panel"><h3>WACC by scenario</h3><p class="note">Bear and bull cases move WACC by ±100 bps.</p><div class="chart"><canvas id="c2"></canvas></div></div></div></section><section><h2>Files</h2><p class="h2s">Open or download the original work</p><div class="files"><a class="file" href="../files/Airtel_DCF_Report.pdf" target="_blank"><span class="ext">PDF</span><div>Valuation report<small>WACC, assumptions, scenarios</small></div></a><a class="file" href="../files/Airtel_DCF_Model.xlsx" target="_blank"><span class="ext">XLSX</span><div>Excel model<small>Statements, WACC, DCF, KPIs</small></div></a></div></section>
+</div>
+<footer><div class="wrap"><span>© 2026 Riddhi Agarwal · Singapore</span><a href="../index.html">← Back to portfolio</a></div></footer>
+<script>
+Chart.defaults.color = '#9fb0c7';
+Chart.defaults.borderColor = '#1f2b3f';
+Chart.defaults.font.family = 'Inter, Segoe UI, Helvetica, Arial, sans-serif';
+Chart.defaults.maintainAspectRatio = false;
+new Chart(document.getElementById('c1'), {type:'bar', data:{labels:["Bear", "Base", "Bull", "Market price"], datasets:[{data:[420, 1291, 2459, 1834], backgroundColor:["#f87171", "#34d399", "#22c55e", "#64748b"], borderRadius:6}]}, options:{indexAxis:'x', plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'Rs per share'}}}}});
+new Chart(document.getElementById('c2'), {type:'bar', data:{labels:["Bear", "Base", "Bull"], datasets:[{data:[13.0, 12.0, 11.0], backgroundColor:["#f87171", "#34d399", "#22c55e"], borderRadius:6}]}, options:{indexAxis:'x', plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'WACC (%)'},min:10}}}});
+
+</script>
+</body>
+</html>

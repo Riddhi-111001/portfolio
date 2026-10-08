@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Top Glove: 3-Statement Model & Comps | Riddhi Agarwal</title>
+<link rel="stylesheet" href="../style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body style="--c:#f472b6">
+<nav><div class="wrap"><a class="logo" href="../index.html">RIDDHI<span>.</span>AGARWAL</a><div class="links"><a href="../index.html#projects">All projects</a></div></div></nav>
+<div class="wrap">
+<a class="back" href="../index.html#projects">← Back to all projects</a>
+<div class="phead"><div class="tag" style="color:#f472b6">IB ASSESSMENT · 5 HOURS · KLS: 7113</div><h1>Top Glove: 3-Statement Model & Comps</h1><p class="sub">Completed in a timed 5-hour investment banking assessment: built the three financial statements from raw data, a DCF and a trading comparables analysis for the world's largest glove maker.</p></div>
+<div class="callout">Result: comps imply an enterprise value of <b>MYR 6.3bn</b>, more than double the DCF value of <b>MYR 2.9bn</b>. The gap comes mainly from the 15% WACC in the DCF vs the 9.95x peer median multiple.</div>
+<div class="kpi"><div><b>MYR 2.94bn</b><span>DCF enterprise value</span></div><div><b>MYR 3.45bn</b><span>DCF equity value</span></div><div><b>MYR 6.31bn</b><span>Comps enterprise value</span></div><div><b>15% / 2.5%</b><span>WACC / terminal growth</span></div><div><b>5 hours</b><span>Time limit</span></div></div>
+<section><h2>What I did</h2><p class="h2s">Approach and scope</p><ul class="did"><li>Built the income statement, balance sheet and cash flow statement from Capital IQ data (FY2024 to FY2029 projections).</li><li>Projected free cash flow to firm for five years and valued the business with a Gordon growth terminal value.</li><li>Selected listed glove peers (Hartalega, Kossan, Riverstone, Supermax) and applied the median EV/EBITDA multiple.</li><li>Bridged enterprise value to equity value and reconciled the DCF and market approaches.</li></ul></section><section><h2>Results</h2><p class="h2s">Key outputs from the model</p><div class="two"><div class="panel"><h3>Peer EV/EBITDA multiples</h3><p class="note">Source: PitchBook, November 2025. Supermax excluded (not meaningful).</p><div class="chart"><canvas id="c1"></canvas></div></div><div class="panel"><h3>Projected free cash flow to firm</h3><p class="note">MYR millions, FY2025 to FY2029.</p><div class="chart"><canvas id="c2"></canvas></div></div></div></section><section><h2>Files</h2><p class="h2s">Open or download the original work</p><div class="files"><a class="file" href="../files/Top_Glove_Valuation.xlsx" target="_blank"><span class="ext">XLSX</span><div>Full Excel model<small>3 statements, DCF and comps</small></div></a></div></section>
+</div>
+<footer><div class="wrap"><span>© 2026 Riddhi Agarwal · Singapore</span><a href="../index.html">← Back to portfolio</a></div></footer>
+<script>
+Chart.defaults.color = '#9fb0c7';
+Chart.defaults.borderColor = '#1f2b3f';
+Chart.defaults.font.family = 'Inter, Segoe UI, Helvetica, Arial, sans-serif';
+Chart.defaults.maintainAspectRatio = false;
+new Chart(document.getElementById('c1'), {type:'bar', data:{labels:["Hartalega", "Riverstone", "Kossan", "Median"], datasets:[{data:[12.12, 9.95, 5.82, 9.95], backgroundColor:["#64748b", "#64748b", "#64748b", "#f472b6"], borderRadius:6}]}, options:{indexAxis:'x', plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'EV/EBITDA (x)'}}}}});
+new Chart(document.getElementById('c2'), {type:'bar', data:{labels:["FY25", "FY26", "FY27", "FY28", "FY29"], datasets:[{data:[632, 161, 179, 398, 420], backgroundColor:["#f472b6", "#f472b6", "#f472b6", "#f472b6", "#f472b6"], borderRadius:6}]}, options:{indexAxis:'x', plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'FCFF (MYR m)'}}}}});
+
+</script>
+</body>
+</html>

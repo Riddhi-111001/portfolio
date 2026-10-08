@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automated Transaction Tagging | Riddhi Agarwal</title>
+<link rel="stylesheet" href="../style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body style="--c:#2dd4bf">
+<nav><div class="wrap"><a class="logo" href="../index.html">RIDDHI<span>.</span>AGARWAL</a><div class="links"><a href="../index.html#projects">All projects</a></div></div></nav>
+<div class="wrap">
+<a class="back" href="../index.html#projects">← Back to all projects</a>
+<div class="phead"><div class="tag" style="color:#2dd4bf">INTERNSHIP · CREDIT RISK · JENFI · MAY TO AUG 2026</div><h1>Automated Transaction Tagging</h1><p class="sub">At Jenfi, a revenue-based lender, underwriters tagged every bank transaction of an applicant by hand, which was slow and subjective. I turned their judgement into a rules-based Python pipeline.</p></div>
+<div class="callout">Result: tagging that used to be manual now runs as a script, cutting manual review time by <b>~95%</b> per 100-company batch, and system-tag coverage went from about <b>40% to 100%</b>.</div>
+<div class="kpi"><div><b>~95%</b><span>Less manual work</span></div><div><b>40% → 100%</b><span>System tag coverage</span></div><div><b>6–8 months</b><span>Transactions per applicant</span></div><div><b>~98%</b><span>Adjusted accuracy</span></div><div><b>20 levels</b><span>Rule chain</span></div><div><b>Python</b><span>Built with</span></div></div>
+<section><h2>What I did</h2><p class="h2s">Approach and scope</p><ul class="did"><li>Worked with the credit team to convert underwriters' subjective calls into explicit rules for each scenario and category.</li><li>Wrote a prioritised rules engine (a 20-level rule chain) that cleans transaction descriptions before classifying them, backed by a 160+ entity lender database compiled from primary research.</li><li>Benchmarked the pipeline against a 6,500+ loan book across 5+ industry verticals, reaching ~98% adjusted accuracy.</li><li>Extended system-tag coverage from about 40% to 100% so every transaction gets a tag.</li><li>Classified transactions into true customer revenue, buyer and supplier concentration, loans taken and repaid, and shareholder or related-party flows, the inputs for judging whether a business can repay.</li></ul></section><section><h2>Results</h2><p class="h2s">Key outputs from the model</p><div class="two"><div class="panel"><h3>System tag coverage</h3><p class="note">Share of transactions with a system tag.</p><div class="chart"><canvas id="c1"></canvas></div></div><div class="panel"><h3>Manual tagging effort</h3><p class="note">Relative time per application, before = 100.</p><div class="chart"><canvas id="c2"></canvas></div></div></div></section><section><h2>How the pipeline works</h2><p class="h2s">Code and client data are confidential, so this page describes the approach only</p><div class="flow"><div class="step"><b>01 · UPLOAD</b><span>Applicant uploads 6–8 months of bank transactions to the Jenfi portal</span></div><div class="step"><b>02 · FETCH</b><span>Script reads the underwriter's files from Google Drive</span></div><div class="step"><b>03 · CLEAN &amp; TAG</b><span>Descriptions are cleaned, then prioritised rules assign each transaction a tag</span></div><div class="step"><b>04 · DECIDE</b><span>Underwriters review revenue, concentration, loans and related-party flows</span></div></div></section>
+</div>
+<footer><div class="wrap"><span>© 2026 Riddhi Agarwal · Singapore</span><a href="../index.html">← Back to portfolio</a></div></footer>
+<script>
+Chart.defaults.color = '#9fb0c7';
+Chart.defaults.borderColor = '#1f2b3f';
+Chart.defaults.font.family = 'Inter, Segoe UI, Helvetica, Arial, sans-serif';
+Chart.defaults.maintainAspectRatio = false;
+new Chart(document.getElementById('c1'), {type:'bar', data:{labels:["Before", "After"], datasets:[{data:[40, 100], backgroundColor:["#64748b", "#2dd4bf"], borderRadius:6}]}, options:{indexAxis:'x', plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'Coverage (%)'},min:0,max:100}}}});
+new Chart(document.getElementById('c2'), {type:'bar', data:{labels:["Before", "After"], datasets:[{data:[100, 5], backgroundColor:["#64748b", "#2dd4bf"], borderRadius:6}]}, options:{indexAxis:'x', plugins:{legend:{display:false}}, scales:{y:{title:{display:true,text:'Relative effort'},min:0,max:100}}}});
+
+</script>
+</body>
+</html>

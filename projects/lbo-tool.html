@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LBO Returns Analyser — Riddhi Agarwal | NUS MSc Finance</title>
+<meta name="description" content="Interactive Leveraged Buyout returns model with sponsor IRR, MOIC, sensitivity analysis, and value creation decomposition.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080d19;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:#1a2236;outline:none;cursor:pointer}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#4a90d9;cursor:pointer;border:2px solid #0c1322}
+input[type="range"]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#4a90d9;cursor:pointer;border:2px solid #0c1322}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#080d19}
+::-webkit-scrollbar-thumb{background:#1a2236;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#2d3a50}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useMemo}=React;
+
+const CURRENCIES={USD:{symbol:"$",code:"USD"},SGD:{symbol:"S$",code:"SGD"}};
+
+function computeLBO(params){
+const{ebitda,entryMultiple,debtPct,interestRate,ebitdaGrowth,exitMultiple,holdPeriod,cashForDebtRepay,txnFeePct,mgmtRolloverPct,scale}=params;
+const s=scale==="B"?1000:1;
+const eb=ebitda*s;
+const entryEV=eb*entryMultiple;
+const txnFees=entryEV*(txnFeePct/100);
+const totalUses=entryEV+txnFees;
+const totalDebt=entryEV*(debtPct/100);
+const totalEquity=totalUses-totalDebt;
+const mgmtRollover=totalEquity*(mgmtRolloverPct/100);
+const sponsorEquity=totalEquity-mgmtRollover;
+if(sponsorEquity<=0||totalDebt<0)return null;
+const years=[];let currentDebt=totalDebt;let currentEBITDA=eb;
+for(let y=1;y<=holdPeriod;y++){
+currentEBITDA=(y===1?eb:currentEBITDA)*(1+ebitdaGrowth/100);
+const interestExpense=currentDebt*(interestRate/100);
+const cashFlow=currentEBITDA*(cashForDebtRepay/100)-interestExpense;
+const debtPaydown=Math.max(0,Math.min(cashFlow,currentDebt));
+currentDebt=currentDebt-debtPaydown;
+years.push({year:y,ebitda:currentEBITDA,interestExpense,cashFlow,debtPaydown,endingDebt:currentDebt});
+}
+const exitEV=currentEBITDA*exitMultiple;
+const exitEquity=exitEV-currentDebt;
+const sponsorExitEquity=exitEquity*(1-mgmtRolloverPct/100);
+const moic=sponsorEquity>0?sponsorExitEquity/sponsorEquity:0;
+const irr=moic>0?(Math.pow(moic,1/holdPeriod)-1)*100:-100;
+return{entryEV,txnFees,totalUses,totalDebt,totalEquity,mgmtRollover,sponsorEquity,exitEV,exitEquity,sponsorExitEquity,currentDebt,moic,irr,years,exitEBITDA:currentEBITDA,inputEBITDA:eb};
+}
+
+function computeSensitivity(params){
+const steps=[-2,-1,0,1,2];
+const em=steps.map(s=>params.entryMultiple+s).filter(m=>m>0);
+const xm=steps.map(s=>params.exitMultiple+s).filter(m=>m>0);
+const grid=em.map(entry=>xm.map(exit=>{const r=computeLBO({...params,entryMultiple:entry,exitMultiple:exit});return r?r.irr:null;}));
+return{entryMultiples:em,exitMultiples:xm,grid};
+}
+
+const fmt=(v,d=1)=>v!=null?v.toFixed(d):"\u2014";
+const fmtPct=v=>v!=null?`${v.toFixed(1)}%`:"\u2014";
+const fmtX=v=>v!=null?`${v.toFixed(1)}x`:"\u2014";
+
+function irrColor(irr){
+if(irr==null)return{bg:"#1c1c2e",text:"#555"};
+if(irr>=30)return{bg:"#064e3b",text:"#6ee7b7"};
+if(irr>=25)return{bg:"#065f46",text:"#6ee7b7"};
+if(irr>=20)return{bg:"#14532d",text:"#86efac"};
+if(irr>=15)return{bg:"#365314",text:"#bef264"};
+if(irr>=10)return{bg:"#713f12",text:"#fde047"};
+if(irr>=5)return{bg:"#78350f",text:"#fbbf24"};
+if(irr>=0)return{bg:"#7c2d12",text:"#fb923c"};
+return{bg:"#7f1d1d",text:"#fca5a5"};
+}
+
+function SliderInput({label,value,onChange,min,max,step,unit,prefix}){
+const displayVal=()=>{
+if(unit==="$")return`${prefix||"$"}${value}M`;
+if(unit==="%")return`${value}%`;
+if(unit==="x")return`${value}x`;
+if(unit==="yr")return`${value} yr${value!==1?"s":""}`;
+return value;
+};
+const pct=((value-min)/(max-min))*100;
+return(
+<div style={{marginBottom:16}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+<span style={{fontSize:11.5,color:"#c0c8d8",letterSpacing:"0.04em",fontFamily:"'IBM Plex Sans',sans-serif",fontWeight:500}}>{label}</span>
+<span style={{fontSize:14,fontWeight:700,color:"#f1f5f9",fontFamily:"'IBM Plex Mono',monospace",background:"#1a2236",padding:"3px 10px",borderRadius:5,border:"1px solid #2d3a50",minWidth:65,textAlign:"center",display:"inline-block"}}>{displayVal()}</span>
+</div>
+<input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(parseFloat(e.target.value))}
+style={{width:"100%",height:5,cursor:"pointer",WebkitAppearance:"none",appearance:"none",outline:"none",borderRadius:3,background:`linear-gradient(to right,#4a90d9 0%,#4a90d9 ${pct}%,#1a2236 ${pct}%,#1a2236 100%)`}} />
+<div style={{display:"flex",justifyContent:"space-between",fontSize:9.5,color:"#4a5568",marginTop:2,fontFamily:"'IBM Plex Mono',monospace"}}>
+<span>{unit==="$"?`${prefix||"$"}${min}M`:unit==="%"?`${min}%`:unit==="x"?`${min}x`:min}</span>
+<span>{unit==="$"?`${prefix||"$"}${max}M`:unit==="%"?`${max}%`:unit==="x"?`${max}x`:max}</span>
+</div>
+</div>
+);
+}
+
+function MetricCard({label,value,sub,accent}){
+return(
+<div style={{background:"#101828",border:`1px solid ${accent?accent+"44":"#2d3a50"}`,borderRadius:10,padding:"14px 18px",flex:1,minWidth:150,borderLeft:`3px solid ${accent||"#2d3a50"}`}}>
+<div style={{fontSize:10.5,color:"#7a8599",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5,fontFamily:"'IBM Plex Sans',sans-serif",fontWeight:600}}>{label}</div>
+<div style={{fontSize:24,fontWeight:800,color:accent||"#f1f5f9",fontFamily:"'IBM Plex Mono',monospace",lineHeight:1.1}}>{value}</div>
+{sub&&<div style={{fontSize:10.5,color:"#5a6478",marginTop:4,fontFamily:"'IBM Plex Sans',sans-serif"}}>{sub}</div>}
+</div>
+);
+}
+
+function WaterfallBar({label,value,maxVal,color,amount}){
+const pct=maxVal>0?Math.min((Math.abs(value)/maxVal)*100,100):0;
+return(
+<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:7}}>
+<div style={{width:100,fontSize:11,color:"#a0aec0",textAlign:"right",fontFamily:"'IBM Plex Sans',sans-serif",flexShrink:0,fontWeight:500}}>{label}</div>
+<div style={{flex:1,height:22,background:"#0d1320",borderRadius:4,overflow:"hidden"}}>
+<div style={{width:`${pct}%`,height:"100%",background:color,borderRadius:4,transition:"width 0.4s ease"}} />
+</div>
+<div style={{width:80,fontSize:12,color:"#e2e8f0",fontFamily:"'IBM Plex Mono',monospace",textAlign:"right",flexShrink:0,fontWeight:600}}>{amount}</div>
+</div>
+);
+}
+
+function SectionHeader({children}){
+return(<div style={{fontSize:11,fontWeight:700,color:"#4a90d9",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:14,fontFamily:"'IBM Plex Sans',sans-serif",paddingBottom:8,borderBottom:"1px solid #1a2236"}}>{children}</div>);
+}
+
+function Panel({children,style}){
+return(<div style={{background:"#0c1322",border:"1px solid #1a2236",borderRadius:10,padding:"18px 22px",...style}}>{children}</div>);
+}
+
+function ToggleBtn({options,value,onChange}){
+return(
+<div style={{display:"flex",background:"#0d1320",borderRadius:6,border:"1px solid #1a2236",overflow:"hidden"}}>
+{options.map(o=>(
+<button key={o.value} onClick={()=>onChange(o.value)} style={{
+padding:"5px 12px",fontSize:10.5,fontWeight:value===o.value?700:500,fontFamily:"'IBM Plex Sans',sans-serif",
+color:value===o.value?"#f1f5f9":"#5a6478",background:value===o.value?"#1a2236":"transparent",
+border:"none",cursor:"pointer",letterSpacing:"0.03em",transition:"all 0.2s"
+}}>{o.label}</button>
+))}
+</div>
+);
+}
+
+function LBOCalculator(){
+const[ebitda,setEbitda]=useState(100);
+const[entryMultiple,setEntryMultiple]=useState(8);
+const[debtPct,setDebtPct]=useState(60);
+const[interestRate,setInterestRate]=useState(6.5);
+const[ebitdaGrowth,setEbitdaGrowth]=useState(7);
+const[exitMultiple,setExitMultiple]=useState(10);
+const[holdPeriod,setHoldPeriod]=useState(5);
+const[cashForDebtRepay,setCashForDebtRepay]=useState(40);
+const[txnFeePct,setTxnFeePct]=useState(2);
+const[mgmtRolloverPct,setMgmtRolloverPct]=useState(0);
+const[scale,setScale]=useState("M");
+const[currency,setCurrency]=useState("USD");
+
+const cur=CURRENCIES[currency];
+const fmtV=v=>{
+if(v==null)return"\u2014";
+if(scale==="B")return`${cur.symbol}${(v/1000).toFixed(1)}B`;
+return`${cur.symbol}${v.toFixed(0)}M`;
+};
+
+const params={ebitda,entryMultiple,debtPct,interestRate,ebitdaGrowth,exitMultiple,holdPeriod,cashForDebtRepay,txnFeePct,mgmtRolloverPct,scale};
+const result=useMemo(()=>computeLBO(params),[ebitda,entryMultiple,debtPct,interestRate,ebitdaGrowth,exitMultiple,holdPeriod,cashForDebtRepay,txnFeePct,mgmtRolloverPct,scale]);
+const sensitivity=useMemo(()=>computeSensitivity(params),[ebitda,entryMultiple,debtPct,interestRate,ebitdaGrowth,exitMultiple,holdPeriod,cashForDebtRepay,txnFeePct,mgmtRolloverPct,scale]);
+
+const thStyle={padding:"8px 10px",textAlign:"right",color:"#7a8599",fontWeight:600,fontSize:10,textTransform:"uppercase",letterSpacing:"0.04em",fontFamily:"'IBM Plex Sans',sans-serif"};
+const tdS=(color)=>({padding:"7px 10px",textAlign:"right",fontSize:12,fontFamily:"'IBM Plex Mono',monospace",color,fontWeight:500});
+
+return(
+<div style={{minHeight:"100vh",background:"#080d19",color:"#e2e8f0",fontFamily:"'IBM Plex Sans',sans-serif"}}>
+
+{/* HEADER */}
+<div style={{background:"linear-gradient(180deg,#0c1322 0%,#080d19 100%)",borderBottom:"1px solid #1a2236",padding:"24px 28px 20px"}}>
+<div style={{maxWidth:1240,margin:"0 auto"}}>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+<div style={{display:"flex",alignItems:"center",gap:10}}>
+<div style={{width:32,height:32,borderRadius:6,background:"linear-gradient(135deg,#4a90d9,#2563eb)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"#fff",fontFamily:"'IBM Plex Mono',monospace"}}>LBO</div>
+<h1 style={{fontSize:20,fontWeight:700,margin:0,color:"#f1f5f9",letterSpacing:"-0.01em"}}>Leveraged Buyout Returns Analyser</h1>
+</div>
+<div style={{display:"flex",alignItems:"center",gap:10}}>
+<ToggleBtn options={[{label:"USD",value:"USD"},{label:"SGD",value:"SGD"}]} value={currency} onChange={setCurrency} />
+<ToggleBtn options={[{label:"$M",value:"M"},{label:"$B",value:"B"}]} value={scale} onChange={setScale} />
+</div>
+</div>
+<p style={{fontSize:12.5,color:"#5a6478",margin:"6px 0 0",maxWidth:680,lineHeight:1.5}}>Model sponsor IRR and MOIC across deal assumptions including leverage, operational growth, multiple expansion, management rollover, and transaction costs.</p>
+</div>
+</div>
+
+{/* BODY */}
+<div style={{maxWidth:1240,margin:"0 auto",padding:"20px 28px 50px"}}>
+<div style={{display:"grid",gridTemplateColumns:"310px 1fr",gap:24,alignItems:"start"}}>
+
+{/* LEFT COLUMN: DEAL ASSUMPTIONS */}
+<div style={{background:"#0c1322",border:"1px solid #1a2236",borderRadius:12,padding:"20px 18px",position:"sticky",top:16}}>
+<SectionHeader>Deal Assumptions</SectionHeader>
+<SliderInput label="Target EBITDA" value={ebitda} onChange={setEbitda} min={10} max={500} step={5} unit="$" prefix={cur.symbol} />
+<SliderInput label="Entry EV / EBITDA" value={entryMultiple} onChange={setEntryMultiple} min={3} max={20} step={0.2} unit="x" />
+<SliderInput label="Debt / Total Capital" value={debtPct} onChange={setDebtPct} min={0} max={95} step={5} unit="%" />
+{debtPct>90&&(
+<div style={{background:"#111a2e",border:"1px solid #1e2d45",borderRadius:6,padding:"8px 11px",marginTop:-8,marginBottom:10}}>
+<div style={{fontSize:9.5,color:"#fbbf24",lineHeight:1.5,fontFamily:"'IBM Plex Sans',sans-serif"}}><span style={{fontWeight:700}}>Note:</span> Debt above 90% is atypical — lenders rarely extend beyond this due to default risk and covenant constraints.</div>
+</div>
+)}
+<SliderInput label="Cost of Debt" value={interestRate} onChange={setInterestRate} min={2} max={15} step={0.2} unit="%" />
+<SliderInput label="EBITDA Growth (p.a.)" value={ebitdaGrowth} onChange={setEbitdaGrowth} min={-10} max={30} step={1} unit="%" />
+<SliderInput label="Exit EV / EBITDA" value={exitMultiple} onChange={setExitMultiple} min={3} max={20} step={0.2} unit="x" />
+<SliderInput label="Hold Period" value={holdPeriod} onChange={v=>setHoldPeriod(Math.round(v))} min={1} max={10} step={1} unit="yr" />
+<SliderInput label="FCF for Debt Repayment" value={cashForDebtRepay} onChange={setCashForDebtRepay} min={0} max={100} step={5} unit="%" />
+<div style={{borderTop:"1px solid #1a2236",marginTop:8,paddingTop:12}}>
+<div style={{fontSize:10,fontWeight:700,color:"#4a90d9",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:12}}>Deal Structuring</div>
+<SliderInput label="Transaction Fees (% of EV)" value={txnFeePct} onChange={setTxnFeePct} min={0} max={5} step={0.5} unit="%" />
+<SliderInput label="Management Rollover" value={mgmtRolloverPct} onChange={setMgmtRolloverPct} min={0} max={30} step={5} unit="%" />
+{mgmtRolloverPct>0&&result&&(
+<div style={{background:"#111a2e",border:"1px solid #1e2d45",borderRadius:6,padding:"10px 12px",marginTop:4,marginBottom:4}}>
+<div style={{fontSize:10,color:"#4a90d9",fontWeight:700,marginBottom:4,letterSpacing:"0.03em"}}>Why doesn't this change Sponsor IRR?</div>
+<div style={{fontSize:9.5,color:"#7a8599",lineHeight:1.55}}>
+At pari passu (equal) terms, management rollover reduces both the sponsor's entry equity and exit proceeds proportionally — so MOIC and IRR remain unchanged. The real impact is on <span style={{color:"#a0aec0",fontWeight:600}}>absolute dollar exposure</span>: the sponsor deploys {fmtV(result.sponsorEquity)} instead of {fmtV(result.totalEquity)}, preserving fund capacity for other deals. In practice, management often rolls at a discount ("sweet equity"), which would increase sponsor MOIC — not modelled here.
+</div>
+</div>
+)}
+</div>
+</div>
+
+{/* RIGHT COLUMN: ALL OUTPUTS */}
+<div style={{display:"flex",flexDirection:"column",gap:20}}>
+{result&&(<>
+
+{/* KEY METRICS ROW */}
+<div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+<MetricCard label="Sponsor IRR" value={fmtPct(result.irr)} accent={result.irr>=20?"#22c55e":result.irr>=15?"#eab308":"#ef4444"} sub={result.irr>=25?"Above hurdle":result.irr>=15?"At hurdle":"Below hurdle"} />
+<MetricCard label="Sponsor MOIC" value={fmtX(result.moic)} accent="#4a90d9" sub={`${fmtV(result.sponsorEquity)} \u2192 ${fmtV(result.sponsorExitEquity)}`} />
+<MetricCard label="Entry EV" value={fmtV(result.entryEV)} sub={`${fmtX(entryMultiple)} \u00d7 ${fmtV(result.inputEBITDA)}`} />
+<MetricCard label="Exit EV" value={fmtV(result.exitEV)} sub={`${fmtX(exitMultiple)} \u00d7 ${fmtV(result.exitEBITDA)}`} />
+</div>
+
+{/* SOURCES & USES */}
+<Panel>
+<SectionHeader>Sources & Uses of Funds</SectionHeader>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+<div>
+<div style={{fontSize:10.5,color:"#5a6478",marginBottom:8,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em"}}>Sources</div>
+<WaterfallBar label="Debt" value={result.totalDebt} maxVal={result.totalUses} color="linear-gradient(90deg,#dc2626,#991b1b)" amount={fmtV(result.totalDebt)} />
+<WaterfallBar label="Sponsor Equity" value={result.sponsorEquity} maxVal={result.totalUses} color="linear-gradient(90deg,#4a90d9,#2563eb)" amount={fmtV(result.sponsorEquity)} />
+{result.mgmtRollover>0&&<WaterfallBar label="Mgmt Rollover" value={result.mgmtRollover} maxVal={result.totalUses} color="linear-gradient(90deg,#a855f7,#7c3aed)" amount={fmtV(result.mgmtRollover)} />}
+</div>
+<div>
+<div style={{fontSize:10.5,color:"#5a6478",marginBottom:8,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em"}}>Uses</div>
+<WaterfallBar label="Enterprise Value" value={result.entryEV} maxVal={result.totalUses} color="linear-gradient(90deg,#22c55e,#15803d)" amount={fmtV(result.entryEV)} />
+{result.txnFees>0&&<WaterfallBar label="Transaction Fees" value={result.txnFees} maxVal={result.totalUses} color="linear-gradient(90deg,#f59e0b,#d97706)" amount={fmtV(result.txnFees)} />}
+</div>
+</div>
+</Panel>
+
+{/* CAPITAL STRUCTURE */}
+<Panel>
+<SectionHeader>Capital Structure — Entry vs Exit</SectionHeader>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+<div>
+<div style={{fontSize:10.5,color:"#5a6478",marginBottom:8,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em"}}>At Entry</div>
+<WaterfallBar label="Equity" value={result.totalEquity} maxVal={result.entryEV} color="linear-gradient(90deg,#4a90d9,#2563eb)" amount={fmtV(result.totalEquity)} />
+<WaterfallBar label="Debt" value={result.totalDebt} maxVal={result.entryEV} color="linear-gradient(90deg,#dc2626,#991b1b)" amount={fmtV(result.totalDebt)} />
+</div>
+<div>
+<div style={{fontSize:10.5,color:"#5a6478",marginBottom:8,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em"}}>At Exit</div>
+<WaterfallBar label="Equity" value={result.exitEquity} maxVal={Math.max(result.exitEV,result.entryEV)} color="linear-gradient(90deg,#22c55e,#15803d)" amount={fmtV(result.exitEquity)} />
+<WaterfallBar label="Debt" value={result.currentDebt} maxVal={Math.max(result.exitEV,result.entryEV)} color="linear-gradient(90deg,#dc2626,#991b1b)" amount={fmtV(result.currentDebt)} />
+</div>
+</div>
+</Panel>
+
+{/* YEAR BY YEAR */}
+<Panel style={{overflowX:"auto"}}>
+<SectionHeader>Projected Cash Flows & Debt Schedule</SectionHeader>
+<table style={{width:"100%",borderCollapse:"collapse",fontSize:12,fontFamily:"'IBM Plex Mono',monospace"}}>
+<thead><tr style={{borderBottom:"1px solid #1a2236"}}>
+{["Year","EBITDA","Interest","Debt Paydown","Ending Debt"].map(h=>(<th key={h} style={thStyle}>{h}</th>))}
+</tr></thead>
+<tbody>
+<tr style={{borderBottom:"1px solid #111827"}}>
+<td style={tdS("#7a8599")}>0</td>
+<td style={tdS("#e2e8f0")}>{fmtV(result.inputEBITDA)}</td>
+<td style={tdS("#4a5568")}>{"\u2014"}</td>
+<td style={tdS("#4a5568")}>{"\u2014"}</td>
+<td style={tdS("#fca5a5")}>{fmtV(result.totalDebt)}</td>
+</tr>
+{result.years.map(yr=>(
+<tr key={yr.year} style={{borderBottom:"1px solid #111827"}}>
+<td style={tdS("#7a8599")}>{yr.year}</td>
+<td style={tdS("#e2e8f0")}>{fmtV(yr.ebitda)}</td>
+<td style={tdS("#fbbf24")}>{fmtV(yr.interestExpense)}</td>
+<td style={tdS("#86efac")}>{fmtV(yr.debtPaydown)}</td>
+<td style={tdS("#fca5a5")}>{fmtV(yr.endingDebt)}</td>
+</tr>
+))}
+</tbody>
+</table>
+</Panel>
+
+{/* SENSITIVITY */}
+<Panel style={{overflowX:"auto"}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+<div style={{fontSize:11,fontWeight:700,color:"#4a90d9",textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:"'IBM Plex Sans',sans-serif"}}>Sponsor IRR Sensitivity — Entry vs Exit Multiple</div>
+<div style={{display:"flex",gap:10,fontSize:9.5,color:"#5a6478",fontFamily:"'IBM Plex Sans',sans-serif"}}>
+{[["\u226525%","#064e3b"],["15\u201325%","#365314"],["5\u201315%","#713f12"],["<5%","#7f1d1d"]].map(([l,bg])=>(
+<span key={l} style={{display:"flex",alignItems:"center",gap:3}}><span style={{width:9,height:9,borderRadius:2,background:bg,display:"inline-block"}} /> {l}</span>
+))}
+</div>
+</div>
+<table style={{width:"100%",borderCollapse:"separate",borderSpacing:3,fontFamily:"'IBM Plex Mono',monospace"}}>
+<thead><tr>
+<th style={{padding:7,fontSize:9.5,color:"#4a5568",textAlign:"center",width:100,fontFamily:"'IBM Plex Sans',sans-serif",fontWeight:600}}>Entry \u2193 / Exit \u2192</th>
+{sensitivity.exitMultiples.map(em=>(<th key={em} style={{padding:7,fontSize:12,color:em===exitMultiple?"#4a90d9":"#7a8599",textAlign:"center",fontWeight:em===exitMultiple?700:500}}>{fmt(em,1)}x</th>))}
+</tr></thead>
+<tbody>
+{sensitivity.grid.map((row,i)=>(
+<tr key={i}>
+<td style={{padding:7,fontSize:12,textAlign:"center",color:sensitivity.entryMultiples[i]===entryMultiple?"#4a90d9":"#7a8599",fontWeight:sensitivity.entryMultiples[i]===entryMultiple?700:500}}>{fmt(sensitivity.entryMultiples[i],1)}x</td>
+{row.map((irr,j)=>{
+const c=irrColor(irr);const isBase=sensitivity.entryMultiples[i]===entryMultiple&&sensitivity.exitMultiples[j]===exitMultiple;
+return(<td key={j} style={{padding:"9px 7px",textAlign:"center",fontSize:12.5,fontWeight:isBase?800:500,color:c.text,background:c.bg,borderRadius:5,border:isBase?"2px solid #4a90d9":"1px solid transparent",transition:"all 0.3s ease"}}>{irr!=null?`${irr.toFixed(1)}%`:"\u2014"}</td>);
+})}
+</tr>
+))}
+</tbody>
+</table>
+</Panel>
+
+{/* VALUE CREATION BRIDGE */}
+<Panel>
+<SectionHeader>Value Creation Bridge — Sponsor Returns Decomposition</SectionHeader>
+{(()=>{
+const eg=(result.exitEBITDA-result.inputEBITDA)*exitMultiple;
+const me=(exitMultiple-entryMultiple)*result.inputEBITDA;
+const dp=result.totalDebt-result.currentDebt;
+const fd=-result.txnFees;
+const mx=Math.max(Math.abs(eg),Math.abs(me),Math.abs(dp),result.exitEquity,Math.abs(fd));
+return(<>
+<WaterfallBar label="EBITDA Growth" value={eg} maxVal={mx} color="linear-gradient(90deg,#22c55e,#15803d)" amount={fmtV(eg)} />
+<WaterfallBar label={"Multiple \u0394"} value={me} maxVal={mx} color={me>=0?"linear-gradient(90deg,#4a90d9,#2563eb)":"linear-gradient(90deg,#dc2626,#991b1b)"} amount={fmtV(me)} />
+<WaterfallBar label="Deleveraging" value={dp} maxVal={mx} color="linear-gradient(90deg,#a855f7,#7c3aed)" amount={fmtV(dp)} />
+{result.txnFees>0&&<WaterfallBar label="Fees (drag)" value={Math.abs(fd)} maxVal={mx} color="linear-gradient(90deg,#ef4444,#b91c1c)" amount={`(${fmtV(Math.abs(fd))})`} />}
+<div style={{borderTop:"1px solid #1a2236",marginTop:6,paddingTop:6}}>
+<WaterfallBar label="Total Equity" value={result.exitEquity} maxVal={mx} color="linear-gradient(90deg,#f59e0b,#d97706)" amount={fmtV(result.exitEquity)} />
+</div>
+</>);
+})()}
+</Panel>
+
+</>)}
+
+{!result&&(
+<Panel style={{textAlign:"center",padding:36}}>
+<div style={{color:"#ef4444",fontSize:14,fontWeight:600}}>Invalid assumptions — sponsor equity must be positive.</div>
+<div style={{color:"#5a6478",fontSize:12,marginTop:6}}>Reduce leverage, entry multiple, or management rollover percentage.</div>
+</Panel>
+)}
+</div>
+</div>
+
+{/* MODEL ASSUMPTIONS & LIMITATIONS */}
+<Panel style={{marginTop:20}}>
+<SectionHeader>Model Assumptions & Limitations</SectionHeader>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,fontSize:10,color:"#5a6478",lineHeight:1.6,fontFamily:"'IBM Plex Sans',sans-serif"}}>
+<div style={{display:"flex",gap:6}}><span style={{color:"#4a90d9",flexShrink:0}}>{"\u2022"}</span><span>IRR assumes no interim distributions (dividends or recapitalisations). True IRR with interim cash flows would require an NPV-based solver.</span></div>
+<div style={{display:"flex",gap:6}}><span style={{color:"#4a90d9",flexShrink:0}}>{"\u2022"}</span><span>EBITDA is treated as a direct proxy for cash flow. Capex, taxes, and working capital changes are abstracted into the "FCF for Debt Repayment" percentage.</span></div>
+<div style={{display:"flex",gap:6}}><span style={{color:"#4a90d9",flexShrink:0}}>{"\u2022"}</span><span>Exit assumes a frictionless sale with no transaction costs. In practice, exit advisory and legal fees typically run 1-2% of exit EV.</span></div>
+<div style={{display:"flex",gap:6}}><span style={{color:"#4a90d9",flexShrink:0}}>{"\u2022"}</span><span>Single debt tranche with blended cost. Real LBOs typically layer senior and subordinated debt at different rates and repayment priorities.</span></div>
+<div style={{display:"flex",gap:6}}><span style={{color:"#4a90d9",flexShrink:0}}>{"\u2022"}</span><span>No tax shield benefit modelled on interest expense. In practice, interest deductibility reduces effective cost of debt and enhances equity returns.</span></div>
+<div style={{display:"flex",gap:6}}><span style={{color:"#4a90d9",flexShrink:0}}>{"\u2022"}</span><span>Currency selection is cosmetic (label only) — no FX conversion applied. SEA deals typically run 40-60% leverage with 5-9% senior debt cost.</span></div>
+</div>
+</Panel>
+
+{/* FOOTER */}
+<div style={{textAlign:"center",marginTop:28,paddingTop:20,borderTop:"1px solid #1a2236"}}>
+<p style={{fontSize:11.5,color:"#5a6478",margin:0,fontWeight:500}}>
+Built by <span style={{color:"#a0aec0",fontWeight:700}}>Riddhi Agarwal</span> {"\u00b7"} NUS MSc Finance {"\u00b7"} CFA Level 3 Candidate
+</p>
+<p style={{fontSize:9.5,color:"#2d3a50",marginTop:5}}>For illustrative purposes only. Simplified LBO screening framework — does not constitute investment advice.</p>
+</div>
+</div>
+</div>
+);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<LBOCalculator />);
+</script>
+</body>
+</html>
